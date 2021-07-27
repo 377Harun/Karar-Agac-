@@ -1,0 +1,106 @@
+```{r}
+
+#cp default olarak 0.01 gelir min.split 20 gelir maxdepth=30 minbucket minsplit/3 gelir maxdepth agacı sınırlar
+#min bucket min split in 1/3 ü kadar.
+#tune işlemlerinde cp ve maxdepth parametrelerini tune edicez
+
+model = rpart(sales~. ,data = Advertising,
+              parms = list("information"),
+              control = rpart.control(minsplit = 30,cp=0.01,maxdepth =10 ))
+
+rpart.plot(model)
+
+tahmin = predict(model,Advertising)
+gercek = Advertising$sales
+
+
+defaultSummary(data.frame(
+  obs=gercek,
+  pred = tahmin
+))
+
+#Model tuning
+#eger ben train fonksiyonumda method argümanına bunları verirsem
+#hangi hiper parametreleri tune eder bana onu gösteriyor.
+modelLookup("lm")
+modelLookup("svmRadial")
+modelLookup("svmLinear")
+modelLookup("knn")
+modelLookup("rpart") #cp parametresini tune eder.
+modelLookup("rpart2") #maxdepth'i tune eder.
+library(e1071) #•buradaki tune.rpart fonksiyonunu kullanıcam 
+#bu tune.rpart fonksiyonu ile min split ve min bucket parametrelerini de tune edebilirim.
+
+trControl = trainControl(method = "cv",number = 5,search = "random")
+trControl2 = trainControl(method = "cv",number = 5,search = "grid")
+
+
+modelCP = train(sales~. ,
+                data=Advertising,
+                method="rpart",
+                tuneLength=20,
+                trControl=trControl
+                )
+
+modelMaxDep = train(sales~. ,
+                data=Advertising,
+                method="rpart2",
+                tuneLength=20,
+                trControl=trControl
+                )
+
+#random search yaparsam tuneLength grid search yaparsam tuneGrid kullan
+#Grid search büyük veri setlerinde her parametreyi tek tek denediği için
+#random search'e istinaden daha maliyetli bu yüzden gercek hayatta genelde
+#random search kullanılır.
+
+modelCP = train(sales~. ,
+                data=Advertising,
+                method="rpart",
+                tuneGrid=expand.grid(cp=seq(0,1,0.1)), #0'dan 1'e git 0.1 art
+                trControl=trControl2
+                )
+
+modelMaxDep = train(sales~. ,
+                data=Advertising,
+                method="rpart2",
+                tuneGrid=expand.grid(maxdepth =3:20),
+                trControl=trControl2
+                )
+
+#min split ve min bucket hiperparametrelerimi tune eder.
+modelTuneMin=tune.rpart(sales~.,
+                        data = Advertising,
+                        minsplit = 10:20,
+                        minbucket = 5:10,
+                        cp=seq(0.0,0.2,by=0.01))
+
+modelTune = rpart(sales~.,
+                  data = Advertising,
+                  parms = list("information"),
+                  control = rpart.control(
+                    minsplit = 10,
+                    minbucket = 5,
+                    cp = 0,
+                    maxdepth =8,
+                  ))
+rpart.plot(modelTune)
+
+
+#Tune edilmemiş hali %92 tune edilmiş hali %98
+defaultSummary(data.frame(
+  obs=Advertising$sales,
+  pred = as.numeric(predict(rpart(sales~.,data = Advertising),Advertising))
+))
+
+rpart.plot(rpart(sales~.,data = Advertising))
+
+defaultSummary(data.frame(
+  obs=Advertising$sales,
+  pred = as.numeric(predict(modelTune,Advertising))
+))
+
+rpart.plot(modelTune)
+
+```
+
