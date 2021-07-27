@@ -1,0 +1,46 @@
+```{r}
+
+KNN Tune işlemleri --------------------------------------------
+#Knn tune işlemleri *****************************************************************
+library(class)
+library(caret)
+head(Advertising)
+model=knn(cbind(Advertising$TV,Advertising$radio,Advertising$newspaper),
+          Advertising%>%select(!sales),
+          cl=Advertising$sales,
+          k=3)
+
+defaultSummary(data.frame(
+  obs=Advertising$sales,
+  pred= as.integer(model)
+))
+
+trControl=trainControl(method = "cv",number = 5,search = "grid")
+trControl2=trainControl(method = "cv",number = 5,search = "random")
+
+#Grid search
+#dogruluk %93.5 çünkü grid search
+knnTune = train(
+  sales~.,
+  data=Advertising,
+  method="knn",
+  tuneGrid=expand.grid(k=1:10),
+  trControl=trControl
+)
+
+
+#random arama
+#dogruluk %67 çünkü random search
+knnTune = train(
+  sales~.,
+  data=Advertising,
+  method="knn",
+  tuneLength=1:10,
+  trControl=trControl2
+)
+
+#en iyi komşuluk sayısı 3'mü.
+
+
+```
+
